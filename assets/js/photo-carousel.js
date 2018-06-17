@@ -12,12 +12,9 @@ export default {
           v-model="slide"
       >
 
-        <b-carousel-slide v-for="image in images" caption="First slide"
-                          text="Nulla vitae elit libero, a pharetra augue mollis interdum."
-                          :key="image"
-        >
-          <img slot="img" class="d-block" :src="'/files' + image.SourceFile" style="max-height: 100vh; margin: 0 auto">
-
+        <b-carousel-slide v-for="image in images" :caption="image.Title" :key="image.SourceFile">
+          <img slot="img" class="d-block" :src="'http://localhost:8045/files' + image.SourceFile" style="max-height: 100vh; margin: 0 auto">
+          <p>{{image.DateTimeOriginal}}<br>{{ image.Description }}</p>
         </b-carousel-slide>
       </b-carousel>
     `,

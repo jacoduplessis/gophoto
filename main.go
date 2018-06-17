@@ -6,14 +6,30 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/gorilla/mux"
 	"gopkg.in/h2non/bimg.v1"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
+	"time"
 )
 
 var assets = packr.NewBox("./assets")
+
+var IMAGE_SUFFIXES = []string{
+	".jpg", ".JPG", ".JPEG", ".jpeg",
+}
+
+func isImage(s string) bool {
+	for _, a := range IMAGE_SUFFIXES {
+		if filepath.Ext(s) == a {
+			return true
+		}
+	}
+	return false
+}
 
 type Image struct {
 	// fields below are modelled after exiftool output
@@ -59,14 +75,38 @@ type Filer struct {
 	Server string   `json:"server"`
 }
 
-func (f *Filer) Read(path string) error {
+func (f *Filer) ReadExif(dirPath string) error {
 
-	exifCmd := exec.Command("exiftool", "-json", "-dateFormat", "%Y-%m-%dT%H:%M:%S", path)
+	start := time.Now()
+	exifCmd := exec.Command("exiftool", "-fast2", "-json", "-dateFormat", "%Y-%m-%d %H:%M:%S", "-fileOrder", "DateTimeOriginal", dirPath)
 	exifJSON, err := exifCmd.Output()
+	fmt.Println("Exiftool processing of", dirPath, "took", time.Now().Sub(start))
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal(exifJSON, &f.Images)
+}
+
+func (f *Filer) ReadImages(dirPath string) error {
+
+	var images []*Image
+	start := time.Now()
+	entries, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		return err
+	}
+	var files []string
+
+	for _, e := range entries {
+		name := e.Name()
+		files = append(files, name)
+		if isImage(name) {
+			images = append(images, &Image{SourceFile: filepath.Join(dirPath, name)})
+		}
+	}
+	fmt.Println("ReadDir processing of", dirPath, "took", time.Now().Sub(start))
+	f.Images = images
+	return nil
 }
 
 func (f *Filer) ParseDir(dir string) ([]string, error) {
@@ -92,7 +132,7 @@ func read(w http.ResponseWriter, r *http.Request) {
 	if dirPath == "" {
 		return // TODO: create app pattern for responses and errors
 	}
-	err := filer.Read(dirPath)
+	err := filer.ReadImages(dirPath)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(500)
@@ -126,7 +166,7 @@ func export(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		target := path.Join(d.Dist, path.Base(p))
+		target := path.Join(d.Dist, filepath.Base(p))
 		if err := bimg.Write(target, resized); err != nil {
 			log.Fatal(err)
 		}
@@ -140,7 +180,9 @@ func main() {
 	go func() {
 		port := "8045"
 		fmt.Println("Running imaginary on ", port)
-		c := exec.Command("imaginary", "-p", port, "-mount", "/")
+		c := exec.Command("imaginary", "-p", port, "-mount", "/", "-http-cache-ttl", "604800")
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
 		c.Run()
 	}()
 

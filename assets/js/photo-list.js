@@ -30,9 +30,8 @@ export default {
           </b-col>
         </b-row>
         <b-modal id="lightbox" size="lg" lazy v-model="showLightbox" :title="activeImage ? activeImage.FileName : ''">
-          <slit
           <template v-if="activeImage">
-            <b-img :src="'/files' + activeImage.SourceFile" fluid></b-img>
+            <b-img :src="'http://localhost:8045/resize?width=800&height=800&file=' + activeImage.SourceFile" fluid></b-img>
             <pre>{{ activeImage }}</pre>
           </template>
         </b-modal>
