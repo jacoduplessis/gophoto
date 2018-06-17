@@ -1,0 +1,8 @@
+.thumbnail-selected {
+    outline: 5px solid orangered;
+}
+
+.thumbnail-col {
+    padding-left: .5rem;
+    padding-right: .5rem;
+}
