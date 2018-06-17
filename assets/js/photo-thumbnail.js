@@ -1,8 +1,7 @@
 export default {
 
-    // template: `<b-img fluid-grow :src="src"></b-img>`,
-
-    template: `<div :style="'background-image: url(' + src + ')'" style="background-size: cover; background-position: center center; height: 300px; width: 100%"></div>`,
+    template: `<b-img fluid-grow :src="src" style="cursor: pointer"></b-img>`,
+    // note: using b-img-lazy is much too slow
     data() {
         return {
             selected: false
